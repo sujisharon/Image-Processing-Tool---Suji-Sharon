@@ -1,0 +1,110 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+using namespace cv;
+using namespace std;
+
+void displayImage(const Mat& img, const string& windowName);
+Mat applyGrayscale(const Mat& img);
+Mat applyBlur(const Mat& img, int kernelSize);
+Mat applySharpen(const Mat& img);
+void adjustBrightnessContrast(Mat& img, double alpha, int beta);
+Mat cropImage(const Mat& img, Rect roi);
+Mat resizeImage(const Mat& img, Size size);
+
+int main() {
+    string imagePath;
+    cout << "Enter the path to the image: ";
+    cin >> imagePath;
+
+    Mat img = imread(imagePath);
+    if (img.empty()) {
+        cerr << "Error: Could not load image!" << endl;
+        return -1;
+    }
+
+    displayImage(img, "Original Image");
+
+    Mat grayImg = applyGrayscale(img);
+    displayImage(grayImg, "Grayscale Image");
+
+    int kernelSize = 5;
+    Mat blurImg = applyBlur(img, kernelSize);
+    displayImage(blurImg, "Blurred Image");
+
+    Mat sharpenImg = applySharpen(img);
+    displayImage(sharpenImg, "Sharpened Image");
+
+    double alpha = 1.5; 
+    int beta = 50;     
+    Mat brightContrastImg = img.clone();
+    adjustBrightnessContrast(brightContrastImg, alpha, beta);
+    displayImage(brightContrastImg, "Brightness & Contrast Adjusted Image");
+
+ 
+    Rect roi(100, 100, 200, 200); 
+    Mat croppedImg = cropImage(img, roi);
+    displayImage(croppedImg, "Cropped Image");
+
+  
+    Size newSize(300, 300); 
+    Mat resizedImg = resizeImage(img, newSize);
+    displayImage(resizedImg, "Resized Image");
+
+    string outputPath;
+    cout << "Enter the path to save the processed image: ";
+    cin >> outputPath;
+    imwrite(outputPath, resizedImg);
+    cout << "Processed image saved to " << outputPath << endl;
+
+    waitKey(0);
+    return 0;
+}
+
+void displayImage(const Mat& img, const string& windowName) {
+    namedWindow(windowName, WINDOW_AUTOSIZE);
+    imshow(windowName, img);
+}
+
+Mat applyGrayscale(const Mat& img) {
+    Mat grayImg;
+    cvtColor(img, grayImg, COLOR_BGR2GRAY);
+    return grayImg;
+}
+
+Mat applyBlur(const Mat& img, int kernelSize) {
+    Mat blurImg;
+    blur(img, blurImg, Size(kernelSize, kernelSize));
+    return blurImg;
+}
+
+
+Mat applySharpen(const Mat& img) {
+    Mat sharpenImg = img.clone();
+    Mat kernel = (Mat_<float>(3,3) << 
+                  0, -1,  0,
+                 -1,  5, -1,
+                  0, -1,  0);
+    filter2D(img, sharpenImg, img.depth(), kernel);
+    return sharpenImg;
+}
+
+void adjustBrightnessContrast(Mat& img, double alpha, int beta) {
+    for (int y = 0; y < img.rows; y++) {
+        for (int x = 0; x < img.cols; x++) {
+            for (int c = 0; c < img.channels(); c++) {
+                img.at<Vec3b>(y,x)[c] = saturate_cast<uchar>(alpha * img.at<Vec3b>(y,x)[c] + beta);
+            }
+        }
+    }
+}
+
+Mat cropImage(const Mat& img, Rect roi) {
+    return img(roi).clone();
+}
+
+Mat resizeImage(const Mat& img, Size size) {
+    Mat resizedImg;
+    resize(img, resizedImg, size);
+    return resizedImg;
+}
